@@ -28,10 +28,12 @@ action :before_compile do
     include_recipe 'nodejs::npm'
   end
 
+  r = new_resource
+
   unless new_resource.restart_command
     new_resource.restart_command do
 
-      service "#{new_resource.application.name}_nodejs" do
+      service "#{r.application.name}_nodejs" do
         provider Chef::Provider::Service::Upstart
         supports :restart => true, :start => true, :stop => true
         action [:enable, :restart]
@@ -41,7 +43,7 @@ action :before_compile do
   end
 
   new_resource.environment.update({
-    'NODE_ENV' => new_resource.environment_name
+    'NODE_ENV' => r.environment_name
   })
 
 end
@@ -55,7 +57,10 @@ end
 action :before_migrate do
 
   if new_resource.npm
-    execute 'npm install' do
+    cmd = 'npm install'
+    cmd += ' ' + new_resource.npm if new_resource.npm.kind_of?(String)
+
+    execute cmd do
       cwd new_resource.release_path
       user new_resource.owner
       group new_resource.group
@@ -83,7 +88,7 @@ action :before_restart do
       :node_dir => node['nodejs']['dir'],
       :app_dir => new_resource.release_path,
       :entry => new_resource.entry_point,
-      :environment => new_resource.environment
+      :environment => new_resource.environment.merge({ 'NODE_PATH' => [::File.join(new_resource.shared_path,'.npm'),'$NODE_PATH'].join(':') })
     )
   end
 
