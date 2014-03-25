@@ -29,14 +29,12 @@ application "ripple-ripplecharts-api" do
       mode "0640" # owner read/write, group read, world none
       content({
         :production => {
-          :couchdb => {
-            :protocol => database_configuration['protocol'],
-            :username => database_configuration['username'],
-            :password => database_configuration['password'],
-            :host => database_configuration['host'],
-            :port => database_configuration['port'],
-            :database => database_configuration['database_name']
-          }
+          :protocol => database_configuration['protocol'],
+          :username => database_configuration['username'],
+          :password => database_configuration['password'],
+          :host => database_configuration['host'],
+          :port => database_configuration['port'],
+          :database => database_configuration['database_name']
         }
       }.to_json)
     end
