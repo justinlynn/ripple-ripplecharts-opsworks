@@ -10,28 +10,50 @@ application "ripple-ripplecharts-api" do
 
   packages ['git']
 
-  repository 'git://github.com/ripple/ripplecharts.git'
-  revision 'v2.0' # head of v2.0 branch
+  repository configuration['repository']
+  revision configuration['revision']
 
   nodejs do
-    npm 'api'
-    entry_point "node_modules/ripplecharts-api/app.js"
+    npm
+    template "nodejs.upstart.conf.erb"
+    entry_point "app.js"
   end
 
   before_deploy do
 
-    file "/srv/ripple-ripplecharts-api/shared/apiConfig.json" do
+    execute "npm install forever -g"
+
+    file "/srv/ripple-ripplecharts-api/shared/db.config.json" do
       owner 'root'
       group 'www-data'
       mode "0640" # owner read/write, group read, world none
       content({
-        :port => configuration['port'],
-        :couchdb => {
-          :username => database_configuration['username'],
-          :password => database_configuration['password'],
-          :host => database_configuration['host'],
-          :port => database_configuration['port'],
-          :database => database_configuration['database_name']
+        :production => {
+          :couchdb => {
+            :protocol => database_configuration['protocol'],
+            :username => database_configuration['username'],
+            :password => database_configuration['password'],
+            :host => database_configuration['host'],
+            :port => database_configuration['port'],
+            :database => database_configuration['database_name']
+          }
+        }
+      }.to_json)
+    end
+
+    file '/srv/ripple-ripplecharts-api/shared/deployment.environments.json' do
+      owner 'root'
+      group 'www-data'
+      mode '0640'
+      content({
+        :production => {
+          :port => configuration['port'],
+          :batchSize => 100,
+          :startIndex => 32570,
+          :rippleds => [
+            "http://s_east.ripple.com:51234",
+            "http://s_west.ripple.com:51234"
+          ]
         }
       }.to_json)
     end
@@ -39,6 +61,7 @@ application "ripple-ripplecharts-api" do
   end
 
   symlinks({
-    "apiConfig.json" => "node_modules/ripplecharts-api/apiConfig.json"
+    "db.config.json" => "db.config.json",
+    "deployment.environments.json" => "deployment.environments.json"
   })
 end
